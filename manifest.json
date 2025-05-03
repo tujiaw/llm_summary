@@ -29,7 +29,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["turndown.js", "marked.js"],
+      "resources": ["turndown.js", "marked.js", "settings.html", "settings.js"],
       "matches": ["<all_urls>"]
     }
   ]

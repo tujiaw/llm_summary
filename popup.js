@@ -3,8 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const convertBtn = document.getElementById('convertBtn');
   const summaryContent = document.getElementById('summary-content');
   const loading = document.getElementById('loading');
-  const apiKeyInput = document.getElementById('apiKey');
-  const saveApiKeyBtn = document.getElementById('saveApiKey');
+  const settingsToggle = document.getElementById('settingsToggle');
   
   // 配置marked选项
   marked.setOptions({
@@ -17,23 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     xhtml: false
   });
   
-  // 从存储中获取API key
-  chrome.storage.local.get(['apiKey'], function(result) {
-    if (result.apiKey) {
-      apiKeyInput.value = result.apiKey;
-    }
-  });
-  
-  // 保存API key
-  saveApiKeyBtn.addEventListener('click', function() {
-    const apiKey = apiKeyInput.value;
-    if (!apiKey) {
-      showToast('请输入API Key');
-      return;
-    }
-    chrome.storage.local.set({apiKey: apiKey}, function() {
-      showToast('API Key已保存');
-    });
+  // 设置按钮点击事件 - 导航到设置页面
+  settingsToggle.addEventListener('click', function() {
+    window.location.href = 'settings.html';
   });
   
   // 简单的提示信息函数
@@ -50,14 +35,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.body.appendChild(toast);
     
+    // 添加显示动画
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px) translateX(-50%)';
+    toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    
+    setTimeout(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0) translateX(-50%)';
+    }, 10);
+    
     setTimeout(() => {
       toast.style.opacity = '0';
-      toast.style.transition = 'opacity 0.5s';
+      toast.style.transform = 'translateY(-20px) translateX(-50%)';
       setTimeout(() => {
         if (document.body.contains(toast)) {
           document.body.removeChild(toast);
         }
-      }, 500);
+      }, 300);
     }, 2000);
   }
   
@@ -84,18 +79,28 @@ document.addEventListener('DOMContentLoaded', function() {
       // 获取Markdown内容
       const markdown = results[0].result;
       
-      // 获取API key
-      const apiKey = apiKeyInput.value;
-      if (!apiKey) {
+      // 获取存储的设置
+      const settings = await new Promise(resolve => {
+        chrome.storage.local.get(['apiKey', 'model', 'maxLength'], resolve);
+      });
+      
+      if (!settings.apiKey) {
         showToast('请先设置API Key');
-        loading.style.display = 'none';
+        // 重定向到设置页面
+        setTimeout(() => {
+          window.location.href = 'settings.html';
+        }, 1000);
         summaryContent.innerHTML = '<p>请设置API Key后再试</p>';
         return;
       }
       
+      const apiKey = settings.apiKey;
+      const model = settings.model || 'THUDM/GLM-4-9B-0414';
+      const maxLength = parseInt(settings.maxLength) || 8000;
+      
       // 获取摘要
       summaryContent.innerHTML = '<p>正在生成摘要...</p>';
-      const summary = await getSummary(markdown, apiKey);
+      const summary = await getSummary(markdown, apiKey, model, maxLength);
       
       // 使用marked.js渲染Markdown格式的摘要
       summaryContent.innerHTML = marked.parse(summary);
@@ -105,7 +110,9 @@ document.addEventListener('DOMContentLoaded', function() {
       summaryContent.innerHTML = marked.parse('# 发生错误\n\n' + error.message);
       showToast('操作失败: ' + error.message);
     } finally {
-      loading.style.display = 'none';
+      if (loading) {
+        loading.style.display = 'none';
+      }
     }
   });
   
@@ -127,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // 获取摘要的函数
-  async function getSummary(markdown, apiKey) {
+  async function getSummary(markdown, apiKey, model, maxLength) {
     try {
       const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
         method: 'POST',
@@ -136,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: 'THUDM/GLM-4-9B-0414',
+          model: model,
           messages: [
             {
               role: 'system',
@@ -144,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             {
               role: 'user',
-              content: `请为以下网页内容提供一个结构清晰、易于阅读的Markdown格式摘要，帮助我快速理解网页的核心内容：\n\n${markdown.substring(0, 8000)}`
+              content: `请为以下网页内容提供一个结构清晰、易于阅读的Markdown格式摘要，帮助我快速理解网页的核心内容：\n\n${markdown.substring(0, maxLength)}`
             }
           ]
         })
