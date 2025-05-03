@@ -9,6 +9,17 @@ document.addEventListener('DOMContentLoaded', function() {
   const tabButtons = document.querySelectorAll('.tab-button');
   const tabContents = document.querySelectorAll('.tab-content');
   
+  // 配置marked选项
+  marked.setOptions({
+    renderer: new marked.Renderer(),
+    gfm: true,
+    breaks: true,
+    sanitize: false,
+    smartLists: true,
+    smartypants: false,
+    xhtml: false
+  });
+  
   // 从存储中获取API key
   chrome.storage.local.get(['apiKey'], function(result) {
     if (result.apiKey) {
@@ -30,17 +41,14 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // 简单的提示信息函数
   function showToast(message) {
+    // 移除现有的toast
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+      document.body.removeChild(existingToast);
+    }
+    
     const toast = document.createElement('div');
-    toast.style.position = 'fixed';
-    toast.style.bottom = '10px';
-    toast.style.left = '50%';
-    toast.style.transform = 'translateX(-50%)';
-    toast.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-    toast.style.color = 'white';
-    toast.style.padding = '5px 10px';
-    toast.style.borderRadius = '3px';
-    toast.style.fontSize = '12px';
-    toast.style.zIndex = '1000';
+    toast.className = 'toast';
     toast.textContent = message;
     
     document.body.appendChild(toast);
@@ -49,7 +57,9 @@ document.addEventListener('DOMContentLoaded', function() {
       toast.style.opacity = '0';
       toast.style.transition = 'opacity 0.5s';
       setTimeout(() => {
-        document.body.removeChild(toast);
+        if (document.body.contains(toast)) {
+          document.body.removeChild(toast);
+        }
       }, 500);
     }, 2000);
   }
@@ -72,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
   convertBtn.addEventListener('click', async function() {
     loading.style.display = 'block';
     markdownContent.textContent = '';
-    summaryContent.textContent = '';
+    summaryContent.innerHTML = '';
     
     try {
       // 获取当前标签页
@@ -114,8 +124,11 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       // 获取摘要
+      summaryContent.innerHTML = '<p>正在生成摘要...</p>';
       const summary = await getSummary(markdown, apiKey);
-      summaryContent.innerHTML = summary;
+      
+      // 使用marked.js渲染Markdown格式的摘要
+      summaryContent.innerHTML = marked.parse(summary);
       
       // 获取完摘要后自动切换到摘要标签
       tabButtons.forEach(btn => btn.classList.remove('active'));
@@ -164,11 +177,11 @@ document.addEventListener('DOMContentLoaded', function() {
           messages: [
             {
               role: 'system',
-              content: '你是一个网页内容摘要助手，请为用户提供的网页内容生成一个简洁清晰的摘要，突出重点信息。'
+              content: '你是一个网页内容摘要助手，请为用户提供的网页内容生成一个简洁清晰的摘要，突出重点信息。请使用Markdown格式输出，包括标题、段落、列表，以及使用**粗体**或*斜体*标记关键词和重要概念。可以使用引用块>来突出重要段落。'
             },
             {
               role: 'user',
-              content: `请为以下网页内容提供一个简明扼要的摘要，帮助我快速了解网页的主要内容：\n\n${markdown.substring(0, 8000)}`
+              content: `请为以下网页内容提供一个结构清晰、易于阅读的Markdown格式摘要，帮助我快速理解网页的核心内容：\n\n${markdown.substring(0, 8000)}`
             }
           ]
         })
@@ -183,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (error) {
       console.error('获取摘要失败:', error);
       showToast('获取摘要失败');
-      return '获取摘要失败: ' + error.message;
+      return '# 获取摘要失败\n\n' + error.message;
     }
   }
 }); 
