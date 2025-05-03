@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // 获取存储的设置
       const settings = await new Promise(resolve => {
-        chrome.storage.local.get(['apiKey', 'model', 'maxLength'], resolve);
+        chrome.storage.local.get(['apiKey', 'model', 'maxLength', 'language'], resolve);
       });
       
       if (!settings.apiKey) {
@@ -97,10 +97,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const apiKey = settings.apiKey;
       const model = settings.model || 'THUDM/GLM-4-9B-0414';
       const maxLength = parseInt(settings.maxLength) || 8000;
+      const language = settings.language || '中文';
       
       // 获取摘要
       summaryContent.innerHTML = '<p>正在生成摘要...</p>';
-      const summary = await getSummary(markdown, apiKey, model, maxLength);
+      const summary = await getSummary(markdown, apiKey, model, maxLength, language);
       
       // 使用marked.js渲染Markdown格式的摘要
       summaryContent.innerHTML = marked.parse(summary);
@@ -134,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // 获取摘要的函数
-  async function getSummary(markdown, apiKey, model, maxLength) {
+  async function getSummary(markdown, apiKey, model, maxLength, language) {
     try {
       const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
         method: 'POST',
@@ -147,11 +148,11 @@ document.addEventListener('DOMContentLoaded', function() {
           messages: [
             {
               role: 'system',
-              content: '你是一个网页内容摘要助手，请为用户提供的网页内容生成一个简洁清晰的摘要，突出重点信息。请使用Markdown格式输出，包括标题、段落、列表，以及使用**粗体**或*斜体*标记关键词和重要概念。可以使用引用块>来突出重要段落。'
+              content: `你是一个网页内容摘要助手，请为用户提供的网页内容生成一个简洁清晰的${language}摘要，突出重点信息。请使用Markdown格式输出，包括标题、段落、列表，以及使用**粗体**或*斜体*标记关键词和重要概念。可以使用引用块>来突出重要段落。`
             },
             {
               role: 'user',
-              content: `请为以下网页内容提供一个结构清晰、易于阅读的Markdown格式摘要，帮助我快速理解网页的核心内容：\n\n${markdown.substring(0, maxLength)}`
+              content: `请为以下网页内容提供一个结构清晰、易于阅读的${language} Markdown格式摘要，帮助我快速理解网页的核心内容：\n\n${markdown.substring(0, maxLength)}`
             }
           ]
         })

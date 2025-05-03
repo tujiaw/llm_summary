@@ -3,11 +3,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const apiKeyInput = document.getElementById('apiKey');
   const modelSelect = document.getElementById('modelSelect');
   const maxLengthInput = document.getElementById('maxLength');
+  const languageInput = document.getElementById('language');
   const saveSettingsBtn = document.getElementById('saveSettings');
   const backButton = document.getElementById('backButton');
   
   // 从存储中获取设置
-  chrome.storage.local.get(['apiKey', 'model', 'maxLength'], function(result) {
+  chrome.storage.local.get(['apiKey', 'model', 'maxLength', 'language'], function(result) {
     if (result.apiKey) {
       apiKeyInput.value = result.apiKey;
     }
@@ -17,6 +18,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (result.maxLength) {
       maxLengthInput.value = result.maxLength;
     }
+    if (result.language) {
+      languageInput.value = result.language;
+    } else {
+      // 默认设置为中文
+      languageInput.value = '中文';
+    }
   });
   
   // 保存设置
@@ -24,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const apiKey = apiKeyInput.value;
     const model = modelSelect.value;
     const maxLength = maxLengthInput.value;
+    const language = languageInput.value || '中文';
     
     if (!apiKey) {
       showToast('请输入API Key');
@@ -33,7 +41,8 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.storage.local.set({
       apiKey: apiKey,
       model: model,
-      maxLength: maxLength
+      maxLength: maxLength,
+      language: language
     }, function() {
       showToast('设置已保存');
       
