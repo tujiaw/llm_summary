@@ -1,10 +1,10 @@
 // 此脚本将被注入到所有页面中
+// 记录扩展加载状态
 console.log("网页Markdown摘要扩展已加载");
 
-// 监听来自popup的消息
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+// 监听来自popup的消息并响应
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "getPageContent") {
-    // 这部分工作已在popup.js中通过executeScript实现
     sendResponse({success: true});
   }
 }); 

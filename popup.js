@@ -19,10 +19,40 @@ document.addEventListener('DOMContentLoaded', function() {
   // 保存API key
   saveApiKeyBtn.addEventListener('click', function() {
     const apiKey = apiKeyInput.value;
+    if (!apiKey) {
+      showToast('请输入API Key');
+      return;
+    }
     chrome.storage.local.set({apiKey: apiKey}, function() {
-      alert('API Key已保存');
+      showToast('API Key已保存');
     });
   });
+  
+  // 简单的提示信息函数
+  function showToast(message) {
+    const toast = document.createElement('div');
+    toast.style.position = 'fixed';
+    toast.style.bottom = '10px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    toast.style.color = 'white';
+    toast.style.padding = '5px 10px';
+    toast.style.borderRadius = '3px';
+    toast.style.fontSize = '12px';
+    toast.style.zIndex = '1000';
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.5s';
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 500);
+    }, 2000);
+  }
   
   // 标签切换功能
   tabButtons.forEach(button => {
@@ -64,10 +94,21 @@ document.addEventListener('DOMContentLoaded', function() {
       const markdown = results[0].result;
       markdownContent.textContent = markdown;
       
+      // 切换到Markdown标签
+      tabButtons.forEach(btn => {
+        if (btn.getAttribute('data-tab') === 'markdown') {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      tabContents.forEach(content => content.classList.remove('active'));
+      document.getElementById('markdown-tab').classList.add('active');
+      
       // 获取API key
       const apiKey = apiKeyInput.value;
       if (!apiKey) {
-        alert('请先设置API Key');
+        showToast('请先设置API Key');
         loading.style.display = 'none';
         return;
       }
@@ -76,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const summary = await getSummary(markdown, apiKey);
       summaryContent.innerHTML = summary;
       
-      // 切换到摘要标签
+      // 获取完摘要后自动切换到摘要标签
       tabButtons.forEach(btn => btn.classList.remove('active'));
       tabContents.forEach(content => content.classList.remove('active'));
       
@@ -86,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (error) {
       console.error('Error:', error);
       markdownContent.textContent = '发生错误: ' + error.message;
+      showToast('操作失败: ' + error.message);
     } finally {
       loading.style.display = 'none';
     }
@@ -140,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return data.choices[0].message.content;
     } catch (error) {
       console.error('获取摘要失败:', error);
+      showToast('获取摘要失败');
       return '获取摘要失败: ' + error.message;
     }
   }

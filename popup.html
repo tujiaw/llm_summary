@@ -5,24 +5,37 @@
   <title>网页Markdown摘要</title>
   <style>
     body {
-      width: 400px;
-      padding: 10px;
+      width: 350px;
+      padding: 8px;
       font-family: Arial, sans-serif;
+      font-size: 14px;
+      margin: 0;
+    }
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
     }
     button {
-      margin: 10px 0;
-      padding: 8px 16px;
+      margin: 5px 0;
+      padding: 5px 10px;
       background-color: #4285f4;
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
+      font-size: 13px;
     }
     button:hover {
       background-color: #3367d6;
     }
+    .api-container {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 5px;
+      align-items: center;
+    }
     .tab-container {
-      margin-top: 10px;
+      margin-top: 5px;
     }
     .tab-buttons {
       display: flex;
@@ -31,9 +44,10 @@
     .tab-button {
       background-color: #f1f1f1;
       border: none;
-      padding: 8px 16px;
+      padding: 5px 10px;
       cursor: pointer;
       margin-bottom: -1px;
+      font-size: 12px;
     }
     .tab-button.active {
       background-color: white;
@@ -42,11 +56,12 @@
     }
     .tab-content {
       display: none;
-      padding: 10px;
+      padding: 8px;
       border: 1px solid #ccc;
       border-top: none;
-      height: 300px;
+      height: 250px;
       overflow-y: auto;
+      font-size: 13px;
     }
     .tab-content.active {
       display: block;
@@ -54,22 +69,30 @@
     #loading {
       display: none;
       text-align: center;
-      margin: 10px 0;
+      margin: 5px 0;
+      font-size: 12px;
     }
     #apiKey {
-      width: 100%;
-      padding: 5px;
-      margin-bottom: 10px;
+      flex-grow: 1;
+      padding: 4px;
+      font-size: 12px;
+    }
+    label {
+      font-size: 12px;
+    }
+    #markdown-content, #summary-content {
+      margin: 0;
+      line-height: 1.4;
     }
   </style>
 </head>
 <body>
   <h2>网页Markdown摘要</h2>
   
-  <div>
-    <label for="apiKey">SiliconFlow API Key:</label>
+  <div class="api-container">
+    <label for="apiKey">API Key:</label>
     <input type="password" id="apiKey" placeholder="输入API Key">
-    <button id="saveApiKey">保存API Key</button>
+    <button id="saveApiKey">保存</button>
   </div>
   
   <button id="convertBtn">获取并转换网页内容</button>
