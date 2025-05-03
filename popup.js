@@ -1,13 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
   // 获取元素
   const convertBtn = document.getElementById('convertBtn');
-  const markdownContent = document.getElementById('markdown-content');
   const summaryContent = document.getElementById('summary-content');
   const loading = document.getElementById('loading');
   const apiKeyInput = document.getElementById('apiKey');
   const saveApiKeyBtn = document.getElementById('saveApiKey');
-  const tabButtons = document.querySelectorAll('.tab-button');
-  const tabContents = document.querySelectorAll('.tab-content');
   
   // 配置marked选项
   marked.setOptions({
@@ -64,25 +61,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2000);
   }
   
-  // 标签切换功能
-  tabButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      // 移除所有标签的活动状态
-      tabButtons.forEach(btn => btn.classList.remove('active'));
-      tabContents.forEach(content => content.classList.remove('active'));
-      
-      // 添加当前标签的活动状态
-      button.classList.add('active');
-      const tabId = button.getAttribute('data-tab');
-      document.getElementById(`${tabId}-tab`).classList.add('active');
-    });
-  });
-  
   // 获取并转换网页内容
   convertBtn.addEventListener('click', async function() {
-    loading.style.display = 'block';
-    markdownContent.textContent = '';
-    summaryContent.innerHTML = '';
+    summaryContent.innerHTML = '<p>准备处理...</p>';
     
     try {
       // 获取当前标签页
@@ -100,26 +81,15 @@ document.addEventListener('DOMContentLoaded', function() {
         function: getPageContent
       });
       
-      // 显示Markdown内容
+      // 获取Markdown内容
       const markdown = results[0].result;
-      markdownContent.textContent = markdown;
-      
-      // 切换到Markdown标签
-      tabButtons.forEach(btn => {
-        if (btn.getAttribute('data-tab') === 'markdown') {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
-      tabContents.forEach(content => content.classList.remove('active'));
-      document.getElementById('markdown-tab').classList.add('active');
       
       // 获取API key
       const apiKey = apiKeyInput.value;
       if (!apiKey) {
         showToast('请先设置API Key');
         loading.style.display = 'none';
+        summaryContent.innerHTML = '<p>请设置API Key后再试</p>';
         return;
       }
       
@@ -130,16 +100,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // 使用marked.js渲染Markdown格式的摘要
       summaryContent.innerHTML = marked.parse(summary);
       
-      // 获取完摘要后自动切换到摘要标签
-      tabButtons.forEach(btn => btn.classList.remove('active'));
-      tabContents.forEach(content => content.classList.remove('active'));
-      
-      document.querySelector('[data-tab="summary"]').classList.add('active');
-      document.getElementById('summary-tab').classList.add('active');
-      
     } catch (error) {
       console.error('Error:', error);
-      markdownContent.textContent = '发生错误: ' + error.message;
+      summaryContent.innerHTML = marked.parse('# 发生错误\n\n' + error.message);
       showToast('操作失败: ' + error.message);
     } finally {
       loading.style.display = 'none';

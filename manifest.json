@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "网页Markdown摘要",
+  "name": "网页摘要",
   "version": "1.0",
-  "description": "将网页内容转换为Markdown并使用大模型生成摘要",
+  "description": "一键获取网页内容的精炼摘要，让您快速理解核心内容",
   "permissions": [
     "activeTab",
     "scripting",
