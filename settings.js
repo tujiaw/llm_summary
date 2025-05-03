@@ -4,11 +4,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const modelSelect = document.getElementById('modelSelect');
   const maxLengthInput = document.getElementById('maxLength');
   const languageInput = document.getElementById('language');
+  const promptTemplateInput = document.getElementById('promptTemplate');
   const saveSettingsBtn = document.getElementById('saveSettings');
   const backButton = document.getElementById('backButton');
   
+  // 默认提示词模板
+  const defaultPromptTemplate = `请为以下网页内容提供一个结构清晰、易于阅读的{{language}} Markdown格式摘要，帮助我快速理解网页的核心内容。请突出重点信息，使用Markdown格式输出，包括标题、段落、列表，以及使用**粗体**或*斜体*标记关键词和重要概念。可以使用引用块>来突出重要段落。`;
+  
   // 从存储中获取设置
-  chrome.storage.local.get(['apiKey', 'model', 'maxLength', 'language'], function(result) {
+  chrome.storage.local.get(['apiKey', 'model', 'maxLength', 'language', 'promptTemplate'], function(result) {
     if (result.apiKey) {
       apiKeyInput.value = result.apiKey;
     }
@@ -24,6 +28,12 @@ document.addEventListener('DOMContentLoaded', function() {
       // 默认设置为中文
       languageInput.value = '中文';
     }
+    if (result.promptTemplate) {
+      promptTemplateInput.value = result.promptTemplate;
+    } else {
+      // 使用默认提示词模板
+      promptTemplateInput.value = defaultPromptTemplate;
+    }
   });
   
   // 保存设置
@@ -32,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const model = modelSelect.value;
     const maxLength = maxLengthInput.value;
     const language = languageInput.value || '中文';
+    const promptTemplate = promptTemplateInput.value || defaultPromptTemplate;
     
     if (!apiKey) {
       showToast('请输入API Key');
@@ -42,7 +53,8 @@ document.addEventListener('DOMContentLoaded', function() {
       apiKey: apiKey,
       model: model,
       maxLength: maxLength,
-      language: language
+      language: language,
+      promptTemplate: promptTemplate
     }, function() {
       showToast('设置已保存');
       

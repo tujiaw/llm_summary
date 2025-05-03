@@ -124,6 +124,14 @@
     <input type="text" id="language" placeholder="输入生成摘要的语言" value="中文">
   </div>
   
+  <div class="settings-item">
+    <label for="promptTemplate">提示词模板:</label>
+    <textarea id="promptTemplate" rows="6" placeholder="输入自定义提示词模板" style="width: 100%; padding: 8px; font-size: 13px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+    <div style="margin-top: 4px; font-size: 12px; color: #666;">
+      可用变量: {{language}}, {{maxLength}}
+    </div>
+  </div>
+  
   <button id="saveSettings">保存设置</button>
   
   <script src="settings.js"></script>
