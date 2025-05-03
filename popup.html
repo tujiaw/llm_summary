@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>网页Markdown摘要</title>
+  <style>
+    body {
+      width: 400px;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+    }
+    button {
+      margin: 10px 0;
+      padding: 8px 16px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    .tab-container {
+      margin-top: 10px;
+    }
+    .tab-buttons {
+      display: flex;
+      border-bottom: 1px solid #ccc;
+    }
+    .tab-button {
+      background-color: #f1f1f1;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+      margin-bottom: -1px;
+    }
+    .tab-button.active {
+      background-color: white;
+      border: 1px solid #ccc;
+      border-bottom: none;
+    }
+    .tab-content {
+      display: none;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-top: none;
+      height: 300px;
+      overflow-y: auto;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    #loading {
+      display: none;
+      text-align: center;
+      margin: 10px 0;
+    }
+    #apiKey {
+      width: 100%;
+      padding: 5px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>网页Markdown摘要</h2>
+  
+  <div>
+    <label for="apiKey">SiliconFlow API Key:</label>
+    <input type="password" id="apiKey" placeholder="输入API Key">
+    <button id="saveApiKey">保存API Key</button>
+  </div>
+  
+  <button id="convertBtn">获取并转换网页内容</button>
+  <div id="loading">正在处理，请稍候...</div>
+  
+  <div class="tab-container">
+    <div class="tab-buttons">
+      <button class="tab-button active" data-tab="markdown">Markdown</button>
+      <button class="tab-button" data-tab="summary">摘要</button>
+    </div>
+    
+    <div id="markdown-tab" class="tab-content active">
+      <pre id="markdown-content"></pre>
+    </div>
+    
+    <div id="summary-tab" class="tab-content">
+      <div id="summary-content"></div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html> 
