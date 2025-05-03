@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "网页摘要",
+  "name": "网页内容精华",
   "version": "1.0",
-  "description": "一键获取网页内容的精炼摘要，让您快速理解核心内容",
+  "description": "一键提取网页核心内容，快速获取精华信息",
   "permissions": [
     "activeTab",
     "scripting",
