@@ -6,44 +6,43 @@
   <style>
     body {
       width: 350px;
-      padding: 12px;
+      padding: 10px;
       font-family: Arial, sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       margin: 0;
       background-color: #f8f9fa;
     }
     h2 {
-      margin: 0 0 16px 0;
-      font-size: 16px;
+      margin: 0 0 12px 0;
+      font-size: 15px;
       border-bottom: 1px solid #eee;
-      padding-bottom: 8px;
+      padding-bottom: 6px;
     }
     button {
-      margin: 10px 0;
-      padding: 8px 12px;
+      margin: 8px 0;
+      padding: 6px 10px;
       background-color: #1a73e8;
       color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
       font-size: 13px;
-      width: 100%;
       transition: background-color 0.2s ease;
     }
     button:hover {
       background-color: #1765cc;
     }
     .settings-item {
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     .settings-item label {
       display: block;
-      margin-bottom: 4px;
-      font-size: 13px;
+      margin-bottom: 2px;
+      font-size: 12px;
       font-weight: 500;
     }
     .settings-item input, .settings-item select {
-      padding: 8px;
+      padding: 6px;
       font-size: 13px;
       width: 100%;
       box-sizing: border-box;
@@ -62,21 +61,21 @@
       transform: translateX(-50%);
       background-color: rgba(0, 0, 0, 0.7);
       color: white;
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 4px;
-      font-size: 13px;
+      font-size: 12px;
       z-index: 1000;
     }
     .back-button {
       display: flex;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       background: none;
       border: none;
       padding: 0;
       color: #1a73e8;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       width: auto;
     }
     .back-button:hover {
@@ -84,36 +83,49 @@
       background: none;
     }
     .back-button svg {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       margin-right: 4px;
       fill: #1a73e8;
     }
     .api-settings {
-      margin-top: 20px;
-      padding-top: 15px;
+      margin-top: 10px;
+      padding-top: 8px;
       border-top: 1px solid #eee;
     }
     .api-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
     .custom-model-container {
-      margin-top: 15px;
-      padding: 10px;
+      margin-top: 10px;
+      padding: 8px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      background-color: #f5f5f5;
+      background-color: #fff;
     }
-    .checkbox-container {
-      display: flex;
-      align-items: center;
+    .section {
       margin-bottom: 10px;
     }
-    .checkbox-container input[type="checkbox"] {
-      width: auto;
-      margin-right: 8px;
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+      padding: 6px;
+      font-size: 13px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .help-text {
+      margin-top: 3px;
+      font-size: 11px;
+      color: #666;
+    }
+    /* 保存按钮使用全宽 */
+    #saveSettings {
+      width: 100%;
     }
   </style>
 </head>
@@ -127,23 +139,22 @@
   
   <h2>设置选项</h2>
   
-  <!-- 模型选择 -->
-  <div class="settings-item">
-    <label for="modelSelect">选择模型:</label>
-    <select id="modelSelect">
-      <option value="glm-4-9b">GLM-4-9B</option>
-      <option value="glm-4-9b-chat">GLM-4-9B-Chat</option>
-      <option value="qwen-7b">千问2.5-7B</option>
-      <option value="qwen-coder-7b">千问2.5-Coder-7B</option>
-      <option value="glm-4-flash">GLM-4-Flash</option>
-      <option value="glm-4-flash-250414">GLM-4-Flash-250414</option>
-      <option value="custom">自定义模型</option>
-    </select>
-  </div>
-  
-  <!-- API密钥设置 -->
-  <div class="api-settings">
-    <div class="api-title">API密钥设置</div>
+  <div class="section">
+    <!-- 模型选择 -->
+    <div class="settings-item">
+      <label for="modelSelect">选择模型:</label>
+      <select id="modelSelect">
+        <option value="glm-4-9b">GLM-4-9B</option>
+        <option value="glm-4-9b-chat">GLM-4-9B-Chat</option>
+        <option value="qwen-7b">千问2.5-7B</option>
+        <option value="qwen-coder-7b">千问2.5-Coder-7B</option>
+        <option value="glm-4-flash">GLM-4-Flash</option>
+        <option value="glm-4-flash-250414">GLM-4-Flash-250414</option>
+        <option value="custom">自定义模型</option>
+      </select>
+    </div>
+    
+    <!-- API密钥设置 -->
     <div class="settings-item">
       <label for="apiKey" id="apiKeyLabel">API密钥:</label>
       <input type="password" id="apiKey" placeholder="输入当前模型所需的API Key">
@@ -162,16 +173,16 @@
     </div>
   </div>
   
-  <div class="settings-item">
-    <label for="maxLength">最大内容长度:</label>
-    <input type="number" id="maxLength" placeholder="最大字符数" value="8000">
-  </div>
-  
-  <div class="settings-item">
-    <label for="promptTemplate">提示词模板:</label>
-    <textarea id="promptTemplate" rows="6" placeholder="输入自定义提示词模板" style="width: 100%; padding: 8px; font-size: 13px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
-    <div style="margin-top: 4px; font-size: 12px; color: #666;">
-      可用变量: {{maxLength}}
+  <div class="section">
+    <div class="settings-item">
+      <label for="maxLength">最大内容长度:</label>
+      <input type="number" id="maxLength" placeholder="最大字符数" value="8000">
+    </div>
+    
+    <div class="settings-item">
+      <label for="promptTemplate">提示词模板:</label>
+      <textarea id="promptTemplate" rows="4" placeholder="输入自定义提示词模板"></textarea>
+      <div class="help-text">可用变量: {{maxLength}}</div>
     </div>
   </div>
   
