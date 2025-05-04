@@ -1,14 +1,8 @@
 {
   "manifest_version": 3,
-<<<<<<< HEAD
   "name": "网页内容精华",
   "version": "1.0",
   "description": "一键提取网页核心内容，快速获取精华信息",
-=======
-  "name": "网页Markdown摘要",
-  "version": "1.0",
-  "description": "将网页内容转换为Markdown并使用大模型生成摘要",
->>>>>>> parent of 0386b93 (优化网页摘要扩展的名称和描述，调整弹出页面样式，移除标签切换功能，简化用户界面，增强加载提示信息。)
   "permissions": [
     "activeTab",
     "scripting",
