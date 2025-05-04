@@ -206,6 +206,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const loading = document.getElementById('loading');
   const settingsToggle = document.getElementById('settingsToggle');
   
+  // 标记是否正在处理中
+  let isProcessing = false;
+  
   // 配置marked选项
   marked.setOptions({
     renderer: new marked.Renderer(),
@@ -257,8 +260,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2000);
   }
   
+  // 截流函数 - 防止频繁点击
+  function throttle(func, delay) {
+    let lastCall = 0;
+    return function(...args) {
+      const now = new Date().getTime();
+      if (now - lastCall < delay) {
+        return;
+      }
+      lastCall = now;
+      return func(...args);
+    };
+  }
+  
   // 提取获取摘要的核心逻辑为独立函数
   async function generateSummary() {
+    // 如果正在处理中，则直接返回
+    if (isProcessing) {
+      showToast('请等待当前操作完成');
+      return;
+    }
+    
+    // 设置处理中状态
+    isProcessing = true;
+    
+    // 修改按钮状态
+    convertBtn.disabled = true;
+    convertBtn.style.opacity = '0.6';
+    convertBtn.style.cursor = 'not-allowed';
+    
     summaryContent.innerHTML = '<p>准备处理...</p>';
     
     try {
@@ -332,11 +362,20 @@ document.addEventListener('DOMContentLoaded', function() {
       if (loading) {
         loading.style.display = 'none';
       }
+      
+      // 恢复按钮状态
+      convertBtn.disabled = false;
+      convertBtn.style.opacity = '1';
+      convertBtn.style.cursor = 'pointer';
+      
+      // 重置处理中状态
+      isProcessing = false;
     }
   }
   
-  // 获取并转换网页内容 - 按钮点击事件
-  convertBtn.addEventListener('click', generateSummary);
+  // 获取并转换网页内容 - 添加截流的按钮点击事件
+  const throttledGenerate = throttle(generateSummary, 3000);
+  convertBtn.addEventListener('click', throttledGenerate);
   
   // 页面加载完成后自动触发摘要生成
   generateSummary();
