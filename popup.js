@@ -257,8 +257,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2000);
   }
   
-  // 获取并转换网页内容
-  convertBtn.addEventListener('click', async function() {
+  // 提取获取摘要的核心逻辑为独立函数
+  async function generateSummary() {
     summaryContent.innerHTML = '<p>准备处理...</p>';
     
     try {
@@ -333,7 +333,13 @@ document.addEventListener('DOMContentLoaded', function() {
         loading.style.display = 'none';
       }
     }
-  });
+  }
+  
+  // 获取并转换网页内容 - 按钮点击事件
+  convertBtn.addEventListener('click', generateSummary);
+  
+  // 页面加载完成后自动触发摘要生成
+  generateSummary();
   
   // 移除Markdown中的链接和图片语法的函数
   function removeMarkdownLinksAndImages(markdown) {
