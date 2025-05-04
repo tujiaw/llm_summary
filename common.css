@@ -44,6 +44,7 @@ button:hover {
   cursor: pointer;
   font-size: 11px;
   width: auto;
+  margin: 0;
 }
 
 .back-button:hover {
@@ -113,9 +114,10 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   border-bottom: 1px solid #eee;
-  padding-bottom: 4px;
+  padding-bottom: 3px;
+  height: 24px;
 }
 
 /* 页面标题 */
@@ -142,7 +144,7 @@ input:focus, select:focus, textarea:focus {
 .header-container button:not(.back-button) {
   margin: 0;
   margin-left: auto;
-  padding: 2px 6px;
-  font-size: 12px;
-  min-height: 22px;
+  padding: 1px 5px;
+  font-size: 11px;
+  min-height: 18px;
 } 
