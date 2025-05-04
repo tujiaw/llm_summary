@@ -42,7 +42,7 @@ button:hover {
   padding: 0;
   color: #1a73e8;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   width: auto;
 }
 
@@ -52,9 +52,9 @@ button:hover {
 }
 
 .back-button svg {
-  width: 14px;
-  height: 14px;
-  margin-right: 4px;
+  width: 12px;
+  height: 12px;
+  margin-right: 2px;
   fill: #1a73e8;
 }
 
@@ -111,11 +111,11 @@ input:focus, select:focus, textarea:focus {
 /* 布局容器 */
 .header-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 6px;
   border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
+  padding-bottom: 4px;
 }
 
 /* 页面标题 */
@@ -141,6 +141,8 @@ input:focus, select:focus, textarea:focus {
 /* 覆盖header中按钮的样式 */
 .header-container button:not(.back-button) {
   margin: 0;
-  padding: 5px 10px;
+  margin-left: auto;
+  padding: 2px 6px;
   font-size: 12px;
+  min-height: 22px;
 } 
