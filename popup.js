@@ -1,3 +1,204 @@
+// 配置服务和摘要功能整合
+
+/**
+ * 默认配置值
+ */
+const DEFAULT_CONFIG = {
+  // 当前选择的模型
+  currentModel: 'glm-4-9b',
+  
+  // Native language setting
+  nativeLanguage: 'zh',
+  
+  // 模型定义列表
+  modelDefinitions: {
+    // 免费模型
+    'glm-4-9b': {
+      name: 'THUDM/GLM-4-9B-0414',
+      type: 'silicon-flow',
+      apiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions'
+    },
+    'qwen-7b': {
+      name: 'Qwen/Qwen2.5-7B-Instruct',
+      type: 'silicon-flow',
+      apiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions'
+    },
+    'qwen-coder-7b': {
+      name: 'Qwen/Qwen2.5-Coder-7B-Instruct',
+      type: 'silicon-flow',
+      apiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions'
+    },
+    'glm-4-9b-chat': {
+      name: 'THUDM/glm-4-9b-chat',
+      type: 'silicon-flow',
+      apiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions'
+    },
+    // 新增中科院大模型
+    'glm-4-flash': {
+      name: 'GLM-4-Flash',
+      type: 'zhipu',
+      apiEndpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+    },
+    'glm-4-flash-250414': {
+      name: 'GLM-4-Flash-250414',
+      type: 'zhipu',
+      apiEndpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+    }
+  },
+  
+  // API密钥设置
+  apiKeys: {
+    'silicon-flow': '',
+    'zhipu': ''
+  },
+  
+  // 自定义模型设置
+  customModel: {
+    enabled: false,
+    name: '',
+    apiEndpoint: '',
+    type: 'custom'
+  },
+
+  // 摘要设置
+  summary: {
+    maxLength: 8000,
+    promptTemplate: `请为以下网页内容提供一个结构清晰、易于阅读的中文 Markdown格式摘要，帮助我快速理解网页的核心内容。请突出重点信息，使用Markdown格式输出，包括标题、段落、列表，以及使用**粗体**或*斜体*标记关键词和重要概念。可以使用引用块>来突出重要段落。`
+  }
+};
+
+/**
+ * 配置服务类 - 处理配置的加载、保存和管理
+ */
+class ConfigService {
+  /**
+   * 深度合并对象，用于配置更新
+   * @param {object} target - 目标对象
+   * @param {object} source - 源对象
+   * @returns {object} 合并后的对象
+   * @private
+   */
+  static _deepMerge(target, source) {
+    const result = { ...target };
+    
+    for (const key in source) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
+          result[key] = this._deepMerge(result[key] || {}, source[key]);
+        } else {
+          result[key] = source[key];
+        }
+      }
+    }
+    
+    return result;
+  }
+  
+  /**
+   * 创建安全的配置对象，确保所有必要字段都存在
+   * @param {object} config - 用户配置
+   * @returns {object} 安全的配置对象
+   * @private
+   */
+  static _createSafeConfig(config) {
+    return this._deepMerge(DEFAULT_CONFIG, config || {});
+  }
+
+  /**
+   * 加载配置
+   * @returns {Promise<object>} 配置对象
+   */
+  static async load() {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log('正在加载配置...');
+        chrome.storage.sync.get(DEFAULT_CONFIG, (items) => {
+          if (chrome.runtime.lastError) {
+            console.error('Chrome存储错误:', chrome.runtime.lastError);
+            reject(new Error(`加载设置失败: ${chrome.runtime.lastError.message}`));
+            return;
+          }
+          
+          // 使用深度合并创建配置
+          const config = this._createSafeConfig(items);
+          
+          // 确保有效的currentModel
+          if (!config.modelDefinitions[config.currentModel] && config.currentModel !== 'custom') {
+            config.currentModel = DEFAULT_CONFIG.currentModel;
+            console.warn(`无效的模型选择，重置为默认: ${config.currentModel}`);
+          }
+          
+          console.log('配置加载成功', JSON.stringify({
+            currentModel: config.currentModel,
+            modelDefinitionsCount: Object.keys(config.modelDefinitions).length,
+            apiKeySiliconFlow: config.apiKeys['silicon-flow'] ? '已设置' : '未设置',
+            apiKeyZhipu: config.apiKeys['zhipu'] ? '已设置' : '未设置',
+            customModelEnabled: Boolean(config.customModel.enabled)
+          }));
+          
+          resolve(config);
+        });
+      } catch (error) {
+        console.error('加载配置时发生错误:', error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * 保存配置
+   * @param {object} config - 要保存的配置对象
+   * @returns {Promise<void>}
+   */
+  static async save(config) {
+    return new Promise((resolve, reject) => {
+      try {
+        // 创建安全的配置对象
+        const safeConfig = this._createSafeConfig(config);
+        
+        // 记录日志
+        console.log('正在保存配置...');
+        
+        chrome.storage.sync.set(safeConfig, () => {
+          if (chrome.runtime.lastError) {
+            console.error('Chrome存储错误:', chrome.runtime.lastError);
+            reject(new Error(`保存设置失败: ${chrome.runtime.lastError.message}`));
+          } else {
+            console.log('配置保存成功');
+            resolve();
+          }
+        });
+      } catch (error) {
+        console.error('保存配置时发生错误:', error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * 获取当前选择的模型信息
+   * @param {object} config - 配置对象
+   * @returns {object} 当前选择的模型信息
+   */
+  static getCurrentModelInfo(config) {
+    if (config.currentModel === 'custom') {
+      return config.customModel;
+    }
+    
+    return config.modelDefinitions[config.currentModel];
+  }
+
+  /**
+   * 获取模型对应的API密钥
+   * @param {object} config - 配置对象
+   * @param {string} modelType - 模型类型
+   * @returns {string} API密钥
+   */
+  static getApiKeyForModel(config, modelType) {
+    return config.apiKeys[modelType] || '';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // 获取元素
   const convertBtn = document.getElementById('convertBtn');
@@ -79,13 +280,27 @@ document.addEventListener('DOMContentLoaded', function() {
       // 获取Markdown内容
       const markdown = results[0].result;
       
-      // 获取存储的设置
-      const settings = await new Promise(resolve => {
-        chrome.storage.local.get(['apiKey', 'model', 'maxLength', 'language', 'promptTemplate'], resolve);
-      });
+      // 加载配置
+      const config = await ConfigService.load();
       
-      if (!settings.apiKey) {
-        showToast('请先设置API Key');
+      // 获取当前模型信息
+      const modelInfo = ConfigService.getCurrentModelInfo(config);
+      
+      if (!modelInfo) {
+        showToast('无效的模型配置');
+        summaryContent.innerHTML = '<p>请在设置中选择有效的模型</p>';
+        return;
+      }
+      
+      // 获取模型类型
+      const modelType = config.currentModel === 'custom' ? 'custom' : modelInfo.type;
+      
+      // 检查API密钥
+      const apiKey = config.apiKeys[modelType];
+      if (!apiKey) {
+        const modelTypeName = modelType === 'silicon-flow' ? '智谱AI' : 
+                           (modelType === 'zhipu' ? '中科院' : '自定义模型');
+        showToast(`请先设置${modelTypeName}的API Key`);
         // 重定向到设置页面
         setTimeout(() => {
           window.location.href = 'settings.html';
@@ -94,15 +309,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
-      const apiKey = settings.apiKey;
-      const model = settings.model || 'THUDM/GLM-4-9B-0414';
-      const maxLength = parseInt(settings.maxLength) || 8000;
-      const language = settings.language || '中文';
-      const promptTemplate = settings.promptTemplate || `请为以下网页内容提供一个结构清晰、易于阅读的{{language}} Markdown格式摘要，帮助我快速理解网页的核心内容。请突出重点信息，使用Markdown格式输出，包括标题、段落、列表，以及使用**粗体**或*斜体*标记关键词和重要概念。可以使用引用块>来突出重要段落。`;
+      const maxLength = parseInt(config.summary.maxLength) || 8000;
+      const promptTemplate = config.summary.promptTemplate;
       
       // 获取摘要
       summaryContent.innerHTML = '<p>正在生成摘要...</p>';
-      const summary = await getSummary(markdown, apiKey, model, maxLength, language, promptTemplate);
+      const summary = await getSummary(markdown, apiKey, modelInfo, maxLength, promptTemplate);
       
       // 使用marked.js渲染Markdown格式的摘要
       summaryContent.innerHTML = marked.parse(summary);
@@ -136,39 +348,83 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // 获取摘要的函数
-  async function getSummary(markdown, apiKey, model, maxLength, language, promptTemplate) {
+  async function getSummary(markdown, apiKey, modelInfo, maxLength, promptTemplate) {
     try {
       // 替换模板中的变量
       const prompt = promptTemplate
-        .replace(/{{language}}/g, language)
         .replace(/{{maxLength}}/g, maxLength);
       
-      const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+      // 构建请求参数
+      const requestOptions = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model,
+        }
+      };
+      
+      // 根据不同的模型类型构建不同的请求体
+      if (modelInfo.type === 'silicon-flow') {
+        // 智谱AI模型
+        requestOptions.body = JSON.stringify({
+          model: modelInfo.name,
           messages: [
             {
               role: 'user',
               content: `${prompt}\n\n${markdown.substring(0, maxLength)}`
             }
           ]
-        })
-      });
+        });
+      } else if (modelInfo.type === 'zhipu') {
+        // 中科院模型（不同的API格式）
+        requestOptions.body = JSON.stringify({
+          model: modelInfo.name,
+          messages: [
+            {
+              role: 'user',
+              content: `${prompt}\n\n${markdown.substring(0, maxLength)}`
+            }
+          ]
+        });
+      } else {
+        // 自定义模型
+        requestOptions.body = JSON.stringify({
+          model: modelInfo.name,
+          messages: [
+            {
+              role: 'user',
+              content: `${prompt}\n\n${markdown.substring(0, maxLength)}`
+            }
+          ]
+        });
+      }
+      
+      const response = await fetch(modelInfo.apiEndpoint, requestOptions);
       
       const data = await response.json();
       if (data.error) {
-        throw new Error(data.error.message);
+        throw new Error(data.error.message || '请求失败');
       }
       
-      return data.choices[0].message.content;
+      // 根据不同的模型类型，提取响应中的内容
+      let content = '';
+      if (modelInfo.type === 'silicon-flow' || modelInfo.type === 'zhipu') {
+        content = data.choices[0].message.content;
+      } else {
+        // 自定义模型，尝试通用格式提取
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+          content = data.choices[0].message.content;
+        } else if (data.response) {
+          content = data.response;
+        } else {
+          content = JSON.stringify(data);
+        }
+      }
+      
+      return content;
     } catch (error) {
       console.error('获取摘要失败:', error);
-      showToast('获取摘要失败');
+      showToast('获取摘要失败: ' + error.message);
       return '# 获取摘要失败\n\n' + error.message;
     }
   }
