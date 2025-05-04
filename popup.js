@@ -279,6 +279,11 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // 获取Markdown内容
       const markdown = results[0].result;
+      console.log(markdown);
+      
+      // 移除Markdown中的链接和图片语法
+      const cleanedMarkdown = removeMarkdownLinksAndImages(markdown);
+      console.log("清理后的Markdown:", cleanedMarkdown);
       
       // 加载配置
       const config = await ConfigService.load();
@@ -314,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // 获取摘要
       summaryContent.innerHTML = '<p>正在生成摘要...</p>';
-      const summary = await getSummary(markdown, apiKey, modelInfo, maxLength, promptTemplate);
+      const summary = await getSummary(cleanedMarkdown, apiKey, modelInfo, maxLength, promptTemplate);
       
       // 使用marked.js渲染Markdown格式的摘要
       summaryContent.innerHTML = marked.parse(summary);
@@ -329,6 +334,17 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
+  
+  // 移除Markdown中的链接和图片语法的函数
+  function removeMarkdownLinksAndImages(markdown) {
+    // 移除图片语法: ![alt text](image-url)
+    let cleaned = markdown.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
+    
+    // 移除链接语法: [link text](url)
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    
+    return cleaned;
+  }
   
   // 获取网页内容并转换为Markdown的函数
   function getPageContent() {
