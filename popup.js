@@ -1,13 +1,214 @@
+// 配置服务和摘要功能整合
+
+/**
+ * 默认配置值
+ */
+const DEFAULT_CONFIG = {
+  // 当前选择的模型
+  currentModel: 'glm-4-9b',
+  
+  // Native language setting
+  nativeLanguage: 'zh',
+  
+  // 模型定义列表
+  modelDefinitions: {
+    // 免费模型
+    'glm-4-9b': {
+      name: 'THUDM/GLM-4-9B-0414',
+      type: 'silicon-flow',
+      apiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions'
+    },
+    'qwen-7b': {
+      name: 'Qwen/Qwen2.5-7B-Instruct',
+      type: 'silicon-flow',
+      apiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions'
+    },
+    'qwen-coder-7b': {
+      name: 'Qwen/Qwen2.5-Coder-7B-Instruct',
+      type: 'silicon-flow',
+      apiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions'
+    },
+    'glm-4-9b-chat': {
+      name: 'THUDM/glm-4-9b-chat',
+      type: 'silicon-flow',
+      apiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions'
+    },
+    // 新增中科院大模型
+    'glm-4-flash': {
+      name: 'GLM-4-Flash',
+      type: 'zhipu',
+      apiEndpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+    },
+    'glm-4-flash-250414': {
+      name: 'GLM-4-Flash-250414',
+      type: 'zhipu',
+      apiEndpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+    }
+  },
+  
+  // API密钥设置
+  apiKeys: {
+    'silicon-flow': '',
+    'zhipu': ''
+  },
+  
+  // 自定义模型设置
+  customModel: {
+    enabled: false,
+    name: '',
+    apiEndpoint: '',
+    type: 'custom'
+  },
+
+  // 摘要设置
+  summary: {
+    maxLength: 8000,
+    promptTemplate: `请为以下网页内容提供一个结构清晰、易于阅读的中文摘要，帮助我快速理解网页的核心内容。请突出重点信息，使用Markdown格式输出，包括标题、段落、列表，以及使用**粗体**或*斜体*标记关键词和重要概念。可以使用引用块>来突出重要段落。不要使用代码块。`
+  }
+};
+
+/**
+ * 配置服务类 - 处理配置的加载、保存和管理
+ */
+class ConfigService {
+  /**
+   * 深度合并对象，用于配置更新
+   * @param {object} target - 目标对象
+   * @param {object} source - 源对象
+   * @returns {object} 合并后的对象
+   * @private
+   */
+  static _deepMerge(target, source) {
+    const result = { ...target };
+    
+    for (const key in source) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
+          result[key] = this._deepMerge(result[key] || {}, source[key]);
+        } else {
+          result[key] = source[key];
+        }
+      }
+    }
+    
+    return result;
+  }
+  
+  /**
+   * 创建安全的配置对象，确保所有必要字段都存在
+   * @param {object} config - 用户配置
+   * @returns {object} 安全的配置对象
+   * @private
+   */
+  static _createSafeConfig(config) {
+    return this._deepMerge(DEFAULT_CONFIG, config || {});
+  }
+
+  /**
+   * 加载配置
+   * @returns {Promise<object>} 配置对象
+   */
+  static async load() {
+    return new Promise((resolve, reject) => {
+      try {
+        console.log('正在加载配置...');
+        chrome.storage.sync.get(DEFAULT_CONFIG, (items) => {
+          if (chrome.runtime.lastError) {
+            console.error('Chrome存储错误:', chrome.runtime.lastError);
+            reject(new Error(`加载设置失败: ${chrome.runtime.lastError.message}`));
+            return;
+          }
+          
+          // 使用深度合并创建配置
+          const config = this._createSafeConfig(items);
+          
+          // 确保有效的currentModel
+          if (!config.modelDefinitions[config.currentModel] && config.currentModel !== 'custom') {
+            config.currentModel = DEFAULT_CONFIG.currentModel;
+            console.warn(`无效的模型选择，重置为默认: ${config.currentModel}`);
+          }
+          
+          console.log('配置加载成功', JSON.stringify({
+            currentModel: config.currentModel,
+            modelDefinitionsCount: Object.keys(config.modelDefinitions).length,
+            apiKeySiliconFlow: config.apiKeys['silicon-flow'] ? '已设置' : '未设置',
+            apiKeyZhipu: config.apiKeys['zhipu'] ? '已设置' : '未设置',
+            customModelEnabled: Boolean(config.customModel.enabled)
+          }));
+          
+          resolve(config);
+        });
+      } catch (error) {
+        console.error('加载配置时发生错误:', error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * 保存配置
+   * @param {object} config - 要保存的配置对象
+   * @returns {Promise<void>}
+   */
+  static async save(config) {
+    return new Promise((resolve, reject) => {
+      try {
+        // 创建安全的配置对象
+        const safeConfig = this._createSafeConfig(config);
+        
+        // 记录日志
+        console.log('正在保存配置...');
+        
+        chrome.storage.sync.set(safeConfig, () => {
+          if (chrome.runtime.lastError) {
+            console.error('Chrome存储错误:', chrome.runtime.lastError);
+            reject(new Error(`保存设置失败: ${chrome.runtime.lastError.message}`));
+          } else {
+            console.log('配置保存成功');
+            resolve();
+          }
+        });
+      } catch (error) {
+        console.error('保存配置时发生错误:', error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * 获取当前选择的模型信息
+   * @param {object} config - 配置对象
+   * @returns {object} 当前选择的模型信息
+   */
+  static getCurrentModelInfo(config) {
+    if (config.currentModel === 'custom') {
+      return config.customModel;
+    }
+    
+    return config.modelDefinitions[config.currentModel];
+  }
+
+  /**
+   * 获取模型对应的API密钥
+   * @param {object} config - 配置对象
+   * @param {string} modelType - 模型类型
+   * @returns {string} API密钥
+   */
+  static getApiKeyForModel(config, modelType) {
+    return config.apiKeys[modelType] || '';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // 获取元素
   const convertBtn = document.getElementById('convertBtn');
   const markdownContent = document.getElementById('markdown-content');
   const summaryContent = document.getElementById('summary-content');
   const loading = document.getElementById('loading');
-  const apiKeyInput = document.getElementById('apiKey');
-  const saveApiKeyBtn = document.getElementById('saveApiKey');
-  const tabButtons = document.querySelectorAll('.tab-button');
-  const tabContents = document.querySelectorAll('.tab-content');
+  const settingsToggle = document.getElementById('settingsToggle');
+  
+  // 标记是否正在处理中
+  let isProcessing = false;
   
   // 配置marked选项
   marked.setOptions({
@@ -20,23 +221,9 @@ document.addEventListener('DOMContentLoaded', function() {
     xhtml: false
   });
   
-  // 从存储中获取API key
-  chrome.storage.local.get(['apiKey'], function(result) {
-    if (result.apiKey) {
-      apiKeyInput.value = result.apiKey;
-    }
-  });
-  
-  // 保存API key
-  saveApiKeyBtn.addEventListener('click', function() {
-    const apiKey = apiKeyInput.value;
-    if (!apiKey) {
-      showToast('请输入API Key');
-      return;
-    }
-    chrome.storage.local.set({apiKey: apiKey}, function() {
-      showToast('API Key已保存');
-    });
+  // 设置按钮点击事件 - 导航到设置页面
+  settingsToggle.addEventListener('click', function() {
+    window.location.href = 'settings.html';
   });
   
   // 简单的提示信息函数
@@ -53,14 +240,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.body.appendChild(toast);
     
+    // 添加显示动画
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px) translateX(-50%)';
+    toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    
+    setTimeout(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0) translateX(-50%)';
+    }, 10);
+    
     setTimeout(() => {
       toast.style.opacity = '0';
-      toast.style.transition = 'opacity 0.5s';
+      toast.style.transform = 'translateY(-20px) translateX(-50%)';
       setTimeout(() => {
         if (document.body.contains(toast)) {
           document.body.removeChild(toast);
         }
-      }, 500);
+      }, 300);
     }, 2000);
   }
   
@@ -78,11 +275,36 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // 获取并转换网页内容
-  convertBtn.addEventListener('click', async function() {
-    loading.style.display = 'block';
-    markdownContent.textContent = '';
-    summaryContent.innerHTML = '';
+  // 截流函数 - 防止频繁点击
+  function throttle(func, delay) {
+    let lastCall = 0;
+    return function(...args) {
+      const now = new Date().getTime();
+      if (now - lastCall < delay) {
+        return;
+      }
+      lastCall = now;
+      return func(...args);
+    };
+  }
+  
+  // 提取获取摘要的核心逻辑为独立函数
+  async function generateSummary() {
+    // 如果正在处理中，则直接返回
+    if (isProcessing) {
+      showToast('请等待当前操作完成');
+      return;
+    }
+    
+    // 设置处理中状态
+    isProcessing = true;
+    
+    // 修改按钮状态
+    convertBtn.disabled = true;
+    convertBtn.style.opacity = '0.6';
+    convertBtn.style.cursor = 'not-allowed';
+    
+    summaryContent.innerHTML = '<p>准备处理...</p>';
     
     try {
       // 获取当前标签页
@@ -106,56 +328,47 @@ document.addEventListener('DOMContentLoaded', function() {
 =======
       // 显示Markdown内容
       const markdown = results[0].result;
-      markdownContent.textContent = markdown;
+      console.log(markdown);
       
-      // 切换到Markdown标签
-      tabButtons.forEach(btn => {
-        if (btn.getAttribute('data-tab') === 'markdown') {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
-      tabContents.forEach(content => content.classList.remove('active'));
-      document.getElementById('markdown-tab').classList.add('active');
->>>>>>> parent of 0386b93 (优化网页摘要扩展的名称和描述，调整弹出页面样式，移除标签切换功能，简化用户界面，增强加载提示信息。)
+      // 移除Markdown中的链接和图片语法
+      const cleanedMarkdown = removeMarkdownLinksAndImages(markdown);
+      console.log("清理后的Markdown:", cleanedMarkdown);
       
-      // 获取API key
-      const apiKey = apiKeyInput.value;
-      if (!apiKey) {
-        showToast('请先设置API Key');
-        loading.style.display = 'none';
+      // 加载配置
+      const config = await ConfigService.load();
+      
+      // 获取当前模型信息
+      const modelInfo = ConfigService.getCurrentModelInfo(config);
+      
+      if (!modelInfo) {
+        showToast('无效的模型配置');
+        summaryContent.innerHTML = '<p>请在设置中选择有效的模型</p>';
         return;
       }
       
-      // 获取内容精华
-      summaryContent.innerHTML = '<p>正在提取核心内容...</p>';
-      let summary = await getSummary(markdown, apiKey);
+      // 获取模型类型
+      const modelType = config.currentModel === 'custom' ? 'custom' : modelInfo.type;
       
-      // 如果遇到token超限，则逐步优化内容长度并重试
-      if (summary === 'TOKEN_LIMIT_EXCEEDED') {
-        summaryContent.innerHTML = '<p>内容过长，正在优化处理...</p>';
-        
-        // 尝试预处理内容并重新获取摘要
-        markdown = preprocessMarkdown(markdown);
-        summary = await getSummary(markdown, apiKey);
-        
-        // 如果仍然超过限制，进一步减少内容
-        let reductionLevel = 1;
-        while (summary === 'TOKEN_LIMIT_EXCEEDED' && reductionLevel <= 3) {
-          summaryContent.innerHTML = `<p>继续优化内容 (${reductionLevel}/3)...</p>`;
-          
-          // 增加裁剪强度
-          markdown = reduceMarkdownContent(markdown, reductionLevel);
-          summary = await getSummary(markdown, apiKey);
-          reductionLevel++;
-        }
-        
-        // 如果经过多次尝试仍然失败
-        if (summary === 'TOKEN_LIMIT_EXCEEDED') {
-          summary = '# 内容过长，无法处理\n\n网页内容太长，即使经过多次优化仍超出处理限制。建议选择较小的内容块进行处理。';
-        }
+      // 检查API密钥
+      const apiKey = config.apiKeys[modelType];
+      if (!apiKey) {
+        const modelTypeName = modelType === 'silicon-flow' ? '智谱AI' : 
+                           (modelType === 'zhipu' ? '中科院' : '自定义模型');
+        showToast(`请先设置${modelTypeName}的API Key`);
+        // 重定向到设置页面
+        setTimeout(() => {
+          window.location.href = 'settings.html';
+        }, 1000);
+        summaryContent.innerHTML = '<p>请设置API Key后再试</p>';
+        return;
       }
+      
+      const maxLength = parseInt(config.summary.maxLength) || 8000;
+      const promptTemplate = config.summary.promptTemplate;
+      
+      // 获取摘要
+      summaryContent.innerHTML = '<p>正在生成摘要...</p>';
+      const summary = await getSummary(cleanedMarkdown, apiKey, modelInfo, maxLength, promptTemplate);
       
       // 使用marked.js渲染Markdown格式的摘要
       summaryContent.innerHTML = marked.parse(summary);
@@ -172,147 +385,36 @@ document.addEventListener('DOMContentLoaded', function() {
       markdownContent.textContent = '发生错误: ' + error.message;
       showToast('操作失败: ' + error.message);
     } finally {
-      loading.style.display = 'none';
-    }
-  });
-  
-  // 预处理Markdown，去除明显无关内容但不大幅减少内容
-  function preprocessMarkdown(markdown) {
-    // 创建一个克隆，避免修改原始内容
-    let processed = markdown;
-    
-    // 移除导航、页脚等常见不相关内容
-    const sectionsToRemove = [
-      /(?:nav|navigation|navbar|menu)[\s\S]*?(?:\n#{1,3}|\n\n)/ig,
-      /(?:footer|copyright|版权|备案)[\s\S]*?(?:$|\n#{1,3})/ig,
-      /广告[\s\S]*?(?:\n#{1,3}|\n\n)/g,
-      /comments?[\s\S]*?(?:\n#{1,3}|\n\n)/ig
-    ];
-    
-    for (const pattern of sectionsToRemove) {
-      processed = processed.replace(pattern, '\n\n');
-    }
-    
-    // 删除多余空行
-    processed = processed.replace(/\n{3,}/g, '\n\n');
-    
-    return processed;
-  }
-  
-  // 根据不同级别减少Markdown内容量
-  function reduceMarkdownContent(markdown, level) {
-    // 保留标题
-    const titleMatch = markdown.match(/^# .+/m);
-    const title = titleMatch ? titleMatch[0] : '';
-    
-    // 根据不同级别裁剪内容
-    switch (level) {
-      case 1: // 第一级裁剪：保留60%的内容
-        return title + '\n\n' + truncateContent(markdown, 0.6);
-        
-      case 2: // 第二级裁剪：保留40%的内容，并优先保留重要段落
-        return title + '\n\n' + keepImportantSections(markdown, 0.4);
-        
-      case 3: // 第三级裁剪：仅保留20%的核心内容
-        return title + '\n\n' + extractCoreContent(markdown, 0.2);
-        
-      default:
-        return markdown;
+      if (loading) {
+        loading.style.display = 'none';
+      }
+      
+      // 恢复按钮状态
+      convertBtn.disabled = false;
+      convertBtn.style.opacity = '1';
+      convertBtn.style.cursor = 'pointer';
+      
+      // 重置处理中状态
+      isProcessing = false;
     }
   }
   
-  // 简单截断内容到指定百分比
-  function truncateContent(markdown, percentage) {
-    const contentWithoutTitle = markdown.replace(/^# .+\n\n/, '');
-    const targetLength = Math.floor(contentWithoutTitle.length * percentage);
-    return contentWithoutTitle.substring(0, targetLength) + 
-           '\n\n...(内容已截断)...';
-  }
+  // 获取并转换网页内容 - 添加截流的按钮点击事件
+  const throttledGenerate = throttle(generateSummary, 3000);
+  convertBtn.addEventListener('click', throttledGenerate);
   
-  // 保留重要段落，减少到指定比例
-  function keepImportantSections(markdown, percentage) {
-    const contentWithoutTitle = markdown.replace(/^# .+\n\n/, '');
-    const paragraphs = contentWithoutTitle.split('\n\n');
-    
-    // 关键词模式，用于识别重要段落
-    const keywordPatterns = [
-      /概述|摘要|介绍|简介|总结|结论|背景|方法|结果|讨论|分析/i,
-      /summary|overview|introduction|conclusion|abstract|background|method|result|discussion/i,
-      /主要|重点|关键|核心|特点|特征|优势|优点/i,
-      /main|key|core|feature|advantage|highlight|important/i
-    ];
-    
-    // 标记每个段落的重要性
-    const markedParagraphs = paragraphs.map(p => {
-      let importance = 0;
-      
-      // 检查是否包含标题
-      if (/^#{1,5} /.test(p)) {
-        importance += 3; // 标题很重要
-      }
-      
-      // 检查是否包含关键词
-      for (const pattern of keywordPatterns) {
-        if (pattern.test(p)) {
-          importance += 2;
-          break;
-        }
-      }
-      
-      // 检查段落长度（通常中等长度的段落更有信息量）
-      const wordCount = p.split(/\s+/).length;
-      if (wordCount > 10 && wordCount < 100) {
-        importance += 1;
-      }
-      
-      return { text: p, importance };
-    });
-    
-    // 根据重要性排序
-    markedParagraphs.sort((a, b) => b.importance - a.importance);
-    
-    // 保留总内容的percentage比例
-    const targetCount = Math.max(5, Math.floor(paragraphs.length * percentage));
-    const selectedParagraphs = markedParagraphs.slice(0, targetCount).map(p => p.text);
-    
-    // 按原顺序重新排列选定的段落
-    const originalOrder = [];
-    for (const para of paragraphs) {
-      if (selectedParagraphs.includes(para)) {
-        originalOrder.push(para);
-      }
-    }
-    
-    return originalOrder.join('\n\n') + '\n\n...(内容已优化)...';
-  }
+  // 页面加载完成后自动触发摘要生成
+  generateSummary();
   
-  // 提取核心内容
-  function extractCoreContent(markdown, percentage) {
-    const contentWithoutTitle = markdown.replace(/^# .+\n\n/, '');
+  // 移除Markdown中的链接和图片语法的函数
+  function removeMarkdownLinksAndImages(markdown) {
+    // 移除图片语法: ![alt text](image-url)
+    let cleaned = markdown.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
     
-    // 将内容分为开始、中间和结束三部分
-    const totalLength = contentWithoutTitle.length;
-    const startLength = Math.floor(totalLength * percentage * 0.6); // 60%的预算给开头
-    const endLength = Math.floor(totalLength * percentage * 0.2);   // 20%的预算给结尾
-    const middleLength = Math.floor(totalLength * percentage * 0.2); // 20%的预算给中间
+    // 移除链接语法: [link text](url)
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
     
-    // 提取三个部分
-    const startContent = contentWithoutTitle.substring(0, startLength);
-    
-    const middleStartPos = Math.floor(totalLength / 2) - Math.floor(middleLength / 2);
-    const middleContent = contentWithoutTitle.substring(
-      middleStartPos, 
-      middleStartPos + middleLength
-    );
-    
-    const endContent = contentWithoutTitle.substring(totalLength - endLength);
-    
-    // 组合内容
-    return startContent + 
-           '\n\n...(中间内容已省略)...\n\n' + 
-           middleContent + 
-           '\n\n...(中间内容已省略)...\n\n' + 
-           endContent;
+    return cleaned;
   }
   
   // 获取网页内容并转换为Markdown的函数
@@ -379,62 +481,86 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // 获取摘要的函数
-  async function getSummary(markdown, apiKey) {
+  async function getSummary(markdown, apiKey, modelInfo, maxLength, promptTemplate) {
     try {
-      const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+      // 替换模板中的变量
+      const prompt = promptTemplate
+        .replace(/{{maxLength}}/g, maxLength);
+      
+      // 构建请求参数
+      const requestOptions = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'THUDM/GLM-4-9B-0414',
+        }
+      };
+      
+      // 根据不同的模型类型构建不同的请求体
+      if (modelInfo.type === 'silicon-flow') {
+        // 智谱AI模型
+        requestOptions.body = JSON.stringify({
+          model: modelInfo.name,
           messages: [
             {
-              role: 'system',
-              content: '你是一个网页内容理解助手。请直接用Markdown格式提取并输出页面的核心内容和重点信息。使用标题、段落、列表来组织内容，使用**粗体**标记关键词。不要使用"摘要"、"概述"等元描述词，直接以第三人称客观地呈现内容。不要说"这篇文章"、"本文"等，就像你在写一篇独立的短文。即使输入内容被截断，也请基于可用信息提取核心内容。'
-            },
-            {
               role: 'user',
-              content: `请为以下网页内容提取核心信息，直接用Markdown格式输出，不要使用"摘要"、"文章"等描述性词语：\n\n${markdown}`
+              content: `${prompt}\n\n${markdown.substring(0, maxLength)}`
             }
           ]
-        })
-      });
+        });
+      } else if (modelInfo.type === 'zhipu') {
+        // 中科院模型（不同的API格式）
+        requestOptions.body = JSON.stringify({
+          model: modelInfo.name,
+          messages: [
+            {
+              role: 'user',
+              content: `${prompt}\n\n${markdown.substring(0, maxLength)}`
+            }
+          ]
+        });
+      } else {
+        // 自定义模型
+        requestOptions.body = JSON.stringify({
+          model: modelInfo.name,
+          messages: [
+            {
+              role: 'user',
+              content: `${prompt}\n\n${markdown.substring(0, maxLength)}`
+            }
+          ]
+        });
+      }
+      
+      const response = await fetch(modelInfo.apiEndpoint, requestOptions);
       
       const data = await response.json();
       
       // 检查是否有错误
       if (data.error) {
-        // 检查是否是token超限错误
-        if (data.error.message && (
-            data.error.message.includes('token limit') || 
-            data.error.message.includes('超出') || 
-            data.error.message.includes('too long') ||
-            data.error.message.includes('exceed') ||
-            data.error.message.includes('limit')
-          )) {
-          console.log('Token超限，需要优化内容长度');
-          return 'TOKEN_LIMIT_EXCEEDED';
-        }
-        
-        throw new Error(data.error.message);
+        throw new Error(data.error.message || '请求失败');
       }
       
-      return data.choices[0].message.content;
+      // 根据不同的模型类型，提取响应中的内容
+      let content = '';
+      if (modelInfo.type === 'silicon-flow' || modelInfo.type === 'zhipu') {
+        content = data.choices[0].message.content;
+      } else {
+        // 自定义模型，尝试通用格式提取
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+          content = data.choices[0].message.content;
+        } else if (data.response) {
+          content = data.response;
+        } else {
+          content = JSON.stringify(data);
+        }
+      }
+      
+      return content;
     } catch (error) {
       console.error('获取摘要失败:', error);
-      
-      // 对于网络错误或API错误，也返回一个特定标识
-      if (error.message && error.message.includes('fetch') || 
-          error.message.includes('network') ||
-          error.message.includes('API')) {
-        showToast('API调用失败，请检查网络和API Key');
-        return '# 处理失败\n\n请检查您的网络连接和API Key是否正确。\n\n详细错误: ' + error.message;
-      }
-      
-      showToast('处理失败');
-      return '# 处理失败\n\n' + error.message;
+      showToast('获取摘要失败: ' + error.message);
+      return '# 获取摘要失败\n\n' + error.message;
     }
   }
 }); 
